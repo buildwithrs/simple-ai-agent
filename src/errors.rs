@@ -8,6 +8,9 @@ pub enum AgentError {
 
     #[error("client config error: {0}")]
     ClientConfigError(&'static str),
+    
+    #[error("no choice from llm response")]
+    LLMNoChoice,
 
     #[error("llm error: {0}")]
     OpenAIError(#[from] OpenAiError),

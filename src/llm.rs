@@ -3,7 +3,8 @@ use std::env;
 use openai::{
     Credentials,
     chat::{
-        ChatCompletion, ChatCompletionChoice, ChatCompletionMessage, ChatCompletionMessageRole,
+        ChatCompletion, ChatCompletionFunctionDefinition, ChatCompletionMessage,
+        ChatCompletionMessageRole::{self, User},
     },
 };
 
@@ -27,8 +28,6 @@ impl LLMClient {
             .map_err(|_| AgentError::ClientConfigError("missing OPENAI_BASE_URL"))?;
 
         let credentials = Credentials::new(api_key, base_url.clone());
-        // You are a helpful assistant.
-
         Ok(Self::new(
             &base_url,
             &model,
@@ -57,34 +56,43 @@ impl LLMClient {
         }
     }
 
-    pub async fn send_message(
+    pub async fn chat(
         &mut self,
-        msg: &str,
-    ) -> Result<Vec<ChatCompletionChoice>, AgentError> {
+        msgs: &[ChatCompletionMessage],
+        funcs: &[ChatCompletionFunctionDefinition],
+    ) -> Result<ChatCompletionMessage, AgentError> {
         if self.user_msgs.len() == 0 {
             let mut users_msg = self.system_msg.clone();
-            users_msg.push(ChatCompletionMessage {
-                role: ChatCompletionMessageRole::User,
-                content: Some(msg.to_string()),
-                ..Default::default()
-            });
-
+            users_msg.extend_from_slice(msgs);
             self.user_msgs = users_msg;
         } else {
-            self.user_msgs.push(ChatCompletionMessage {
-                role: ChatCompletionMessageRole::User,
-                content: Some(msg.to_string()),
-                ..Default::default()
-            });
+            self.user_msgs.extend_from_slice(msgs);
         }
 
         let user_msgs = self.user_msgs.clone();
 
         let chat_completion = ChatCompletion::builder(&self.model, user_msgs)
             .credentials(self.credentials.clone())
+            .functions(funcs)
             .create()
             .await?;
 
-        Ok(chat_completion.choices)
+        let choice = chat_completion
+            .choices
+            .into_iter()
+            .next()
+            .ok_or(AgentError::LLMNoChoice)?;
+        Ok(choice.message)
+    }
+}
+
+pub fn to_chat_message(msg: &str) -> ChatCompletionMessage {
+    ChatCompletionMessage {
+        role: User,
+        content: Some(msg.to_string()),
+        name: None,
+        function_call: None,
+        tool_call_id: None,
+        tool_calls: None,
     }
 }
