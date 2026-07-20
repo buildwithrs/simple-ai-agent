@@ -2044,7 +2044,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple-ai-agent"
+name = "simple-pg-agent"
 version = "0.1.0"
 dependencies = [
  "anyhow",

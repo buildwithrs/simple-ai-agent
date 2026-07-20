@@ -17,6 +17,10 @@ pub enum AgentError {
 
     #[error("Context Error: {0}")]
     ContextError(String),
+
+    #[error("Tool Error: {0}")]
+    ToolError(String),
+
     #[error("Plan Error: {0}")]
     PlanError(String),
     #[error("State Error: {0}")]

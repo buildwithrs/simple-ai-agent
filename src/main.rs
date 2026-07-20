@@ -1,5 +1,5 @@
 use rustyline::DefaultEditor;
-use simple_ai_agent::llm::{LLMClient, to_chat_message};
+use simple_pg_agent::llm::{LLMClient, to_chat_message};
 use termimad::MadSkin;
 
 const CMD_HIS: &'static str = ".history/history.txt";
