@@ -1,23 +1,8 @@
-use async_trait::async_trait;
 use serde_json::{Value, json};
-use sqlx::{Column, PgPool, Row, postgres::PgRow};
+use sqlx::{Column, Row, postgres::PgRow};
 
 use crate::errors::AgentError;
 
-
-
-pub struct ExecuteDML {
-    pub conn: PgPool,
-}
-
-// DDL
-pub struct ExecuteDDL {
-    pub conn: PgPool,
-}
-
-/// Identifier-safe check
-/// Postgres identifiers may contain letters, digits, underscores; the first
-/// character must not be a digit. Anything else is suspect.
 pub(crate) fn is_safe_identifier(s: &str) -> bool {
     let mut chars = s.chars();
     match chars.next() {
