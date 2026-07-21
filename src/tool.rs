@@ -135,7 +135,10 @@ mod tests {
         let mut registry = ToolRegistry::default();
         registry.register(EchoTool);
 
-        assert!(registry.get_fn("echo").is_some(), "echo should be registered");
+        assert!(
+            registry.get_fn("echo").is_some(),
+            "echo should be registered"
+        );
         assert!(
             registry.get_fn("missing").is_none(),
             "unknown tools should return None"
@@ -185,7 +188,10 @@ mod tests {
             json!("message")
         );
 
-        let failing = fns.iter().find(|f| f.name == "failing").expect("failing fn");
+        let failing = fns
+            .iter()
+            .find(|f| f.name == "failing")
+            .expect("failing fn");
         assert_eq!(failing.description.as_deref(), Some("always fails"));
     }
 

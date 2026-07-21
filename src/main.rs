@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str())?;
-                
+
                 let msg = &[to_chat_message(&line)];
                 match client.chat(msg, &[]).await {
                     Ok(res) => {

@@ -5,7 +5,11 @@ use std::time::Duration;
 use crate::errors::AgentError;
 
 pub mod desc_table;
+pub mod execute_ddl;
+pub mod execute_dml;
+pub mod execute_query;
 pub mod list_tables;
+pub mod search_schema;
 pub mod tools;
 
 pub async fn establish_connection(db_url: &str) -> anyhow::Result<PgPool> {
@@ -27,6 +31,6 @@ pub fn get_schema_table(args: &Value) -> Result<(String, String), AgentError> {
 
     match table_desc.split_once(".") {
         Some((s, t)) => Ok((s.to_string(), t.to_string())),
-        None => Ok(("public".to_string(), table_desc.to_string()))
+        None => Ok(("public".to_string(), table_desc.to_string())),
     }
 }
