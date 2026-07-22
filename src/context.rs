@@ -1,13 +1,13 @@
-use openai::chat::{ChatCompletionMessage, ChatCompletionMessageRole};
-
+use async_openai::types::chat::{
+    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
+    ChatCompletionRequestSystemMessageContent,
+};
 
 const SYSTEM_PROMPT: &'static str = include_str!("../docs/system_prompts.md");
 
-
-pub fn init_system_prompts() -> ChatCompletionMessage {
-    let mut msg = ChatCompletionMessage::default();
-    msg.role = ChatCompletionMessageRole::System;
-    msg.content = Some(SYSTEM_PROMPT.to_string());
-    
-    msg
+pub fn init_system_prompts() -> ChatCompletionRequestMessage {
+    ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+        content: ChatCompletionRequestSystemMessageContent::Text(SYSTEM_PROMPT.to_string()),
+        name: None,
+    })
 }

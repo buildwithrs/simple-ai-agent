@@ -30,7 +30,7 @@ impl Tool for ListSchemas {
         "list_schemas".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "List all accessible PostgreSQL schemas".to_string()
     }
 
@@ -69,7 +69,7 @@ impl Tool for ListTables {
         "list_tables".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "List all tables for a schema".to_string()
     }
 
@@ -101,18 +101,9 @@ impl Tool for ListTables {
             .and_then(Value::as_bool)
             .unwrap_or(false);
 
-        if schema.is_empty() {
+        if schema.trim().is_empty() {
             return Err(AgentError::ToolError("bad schema name".to_string()));
         }
-
-        let sql = format!(
-            r#"""
-        SELECT table_name, table_type FROM {}.information_schema.tables
-        WHERE table_schema = $1 AND table_type=ANY($2)
-        ORDER BY table_name
-        """#,
-            schema
-        );
 
         let type_filter: &[&str] = if include_views {
             &["BASE TABLE", "VIEW"]
@@ -120,12 +111,17 @@ impl Tool for ListTables {
             &["BASE TABLE"]
         };
 
-        let results = sqlx::query(sqlx::AssertSqlSafe(sql))
-            .bind(schema)
-            .bind(type_filter)
-            .fetch_all(&self.conn)
-            .await
-            .map_err(|e| AgentError::ToolError(format!("list tables failed: {e}")))?;
+        let results = sqlx::query(
+            "SELECT table_name, table_type \
+             FROM information_schema.tables \
+             WHERE table_schema = $1 AND table_type = ANY($2) \
+             ORDER BY table_name",
+        )
+        .bind(schema)
+        .bind(type_filter)
+        .fetch_all(&self.conn)
+        .await
+        .map_err(|e| AgentError::ToolError(format!("list tables failed: {e}")))?;
 
         let mut tables = Vec::with_capacity(results.len());
         for row in results {

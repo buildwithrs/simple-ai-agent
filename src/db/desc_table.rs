@@ -173,7 +173,7 @@ impl Tool for DescTable {
         "desc_table".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "Return column, constraint, and index metadata for a Postgres \
          table. Accepts either a bare name like `\"users\"` (defaults to \
          `public.users`) or a dotted name like `\"audit.events\"`."

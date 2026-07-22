@@ -20,7 +20,7 @@ impl Tool for SearchSchema {
         "search_schema".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "search table, columns according the query".to_string()
     }
 

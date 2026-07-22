@@ -1,4 +1,4 @@
-use openai::OpenAiError;
+use async_openai::error::OpenAIError;
 use rustyline::error::ReadlineError;
 use thiserror::Error;
 
@@ -20,13 +20,16 @@ pub enum AgentError {
     LLMNoChoice,
 
     #[error("llm error: {0}")]
-    OpenAIError(#[from] OpenAiError),
+    OpenAIError(#[from] OpenAIError),
 
     #[error("Context Error: {0}")]
     ContextError(String),
 
     #[error("Tool Error: {0}")]
     ToolError(String),
+
+    #[error("exceed max iterations")]
+    ExceedMaxIter,
 
     #[error("Plan Error: {0}")]
     PlanError(String),

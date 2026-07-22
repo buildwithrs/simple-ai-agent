@@ -27,7 +27,7 @@ impl Tool for ExecuteDDL {
         "execute_ddl".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "Run a single CREATE, ALTER, DROP, or TRUNCATE statement against \
          the active PostgreSQL connection. Requires `confirm: true` and \
          refuses to run on read-only connections."

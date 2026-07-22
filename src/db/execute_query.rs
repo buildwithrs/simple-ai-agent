@@ -26,7 +26,7 @@ impl Tool for ExecuteQuery {
         "execute_query".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "Run a read-only SQL statement (SELECT, WITH, EXPLAIN, SHOW) \
          against the active PostgreSQL connection and return the rows \
          as JSON. Refuses any mutating statement; use execute_dml or \

@@ -33,8 +33,8 @@ pub async fn establish_connection(db_url: &str) -> anyhow::Result<PgPool> {
 }
 
 pub fn register_db_tools(tool_reg: &mut ToolRegistry, pool: PgPool) {
-    tool_reg.register(ListSchemas::new(pool.clone()));
     tool_reg.register(ListTables::new(pool.clone()));
+    tool_reg.register(ListSchemas::new(pool.clone()));
     tool_reg.register(DescTable::new(pool.clone()));
     tool_reg.register(ExecuteQuery::new(pool.clone()));
     tool_reg.register(ExecuteDML::new(pool.clone()));

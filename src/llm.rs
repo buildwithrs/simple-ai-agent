@@ -1,19 +1,34 @@
 use std::env;
 
-use openai::{
-    Credentials,
-    chat::{
-        ChatCompletion, ChatCompletionFunctionDefinition, ChatCompletionMessage,
-        ChatCompletionMessageRole::{Tool as ToolRole, User},
+use async_openai::{
+    Client,
+    config::OpenAIConfig,
+    types::chat::{
+        ChatCompletionMessageToolCalls, ChatCompletionRequestAssistantMessage,
+        ChatCompletionRequestAssistantMessageContent, ChatCompletionRequestMessage,
+        ChatCompletionRequestToolMessage, ChatCompletionRequestToolMessageContent,
+        ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent,
+        ChatCompletionResponseMessage, ChatCompletionTools, CreateChatCompletionRequestArgs,
     },
 };
+use serde::Deserialize;
 
 use crate::errors::AgentError;
+
+#[derive(Debug, Deserialize)]
+struct CompatibleChatCompletionResponse {
+    choices: Vec<CompatibleChatChoice>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompatibleChatChoice {
+    message: ChatCompletionResponseMessage,
+}
 
 pub struct LLMClient {
     pub base_url: String,
     pub model: String,
-    pub credentials: Credentials,
+    pub client: Client<OpenAIConfig>,
 }
 
 impl LLMClient {
@@ -25,58 +40,75 @@ impl LLMClient {
         let base_url = env::var("OPENAI_BASE_URL")
             .map_err(|_| AgentError::ClientConfigError("missing OPENAI_BASE_URL"))?;
 
-        let credentials = Credentials::new(api_key, base_url.clone());
-        Ok(Self::new(&base_url, &model, credentials))
+        let config = OpenAIConfig::new()
+            .with_api_key(api_key)
+            .with_api_base(base_url.clone());
+
+        let client = Client::with_config(config);
+        Ok(Self::new(base_url, &model, client))
     }
 
-    pub fn new(base_url: &str, model: &str, credentials: Credentials) -> Self {
+    pub fn new(base_url: String, model: &str, client: Client<OpenAIConfig>) -> Self {
         Self {
-            base_url: base_url.to_string(),
+            base_url,
             model: model.to_string(),
-            credentials,
+            client,
         }
     }
 
     pub async fn chat(
         &mut self,
-        msgs: &[ChatCompletionMessage],
-        funcs: &[ChatCompletionFunctionDefinition],
-    ) -> Result<ChatCompletionMessage, AgentError> {
-        let chat_completion = ChatCompletion::builder(&self.model, msgs)
-            .credentials(self.credentials.clone())
-            .functions(funcs)
-            .create()
-            .await?;
+        msgs: &[ChatCompletionRequestMessage],
+        tools: Vec<ChatCompletionTools>,
+    ) -> Result<ChatCompletionResponseMessage, AgentError> {
+        let request = CreateChatCompletionRequestArgs::default()
+            .max_completion_tokens(5000u32)
+            .model(&self.model)
+            .messages(msgs)
+            .tools(tools)
+            .build()?;
 
-        let choice = chat_completion
+        let response_message = self
+            .client
+            .chat()
+            .create_byot::<_, CompatibleChatCompletionResponse>(request)
+            .await?
             .choices
-            .into_iter()
-            .next()
-            .ok_or(AgentError::LLMNoChoice)?;
-        Ok(choice.message)
+            .first()
+            .ok_or_else(|| AgentError::LLMNoChoice)?
+            .message
+            .clone();
+
+        Ok(response_message)
     }
 }
 
-pub fn to_chat_message(msg: &str) -> ChatCompletionMessage {
-    ChatCompletionMessage {
-        role: User,
-        content: Some(msg.to_string()),
-        name: None,
-        function_call: None,
-        tool_call_id: None,
-        tool_calls: None,
-    }
+pub fn assistant_with_calls(
+    content: String,
+    calls: Vec<ChatCompletionMessageToolCalls>,
+) -> ChatCompletionRequestMessage {
+    let mut msg = ChatCompletionRequestAssistantMessage::default();
+    msg.content = Some(ChatCompletionRequestAssistantMessageContent::Text(content));
+    msg.tool_calls = Some(calls);
+
+    ChatCompletionRequestMessage::Assistant(msg)
 }
 
-pub fn tool_result(tool_id: impl Into<String>, content: impl Into<String>) -> ChatCompletionMessage {
-    ChatCompletionMessage {
-        role: ToolRole,
-        content: Some(content.into()),
+pub fn user_message(msg: impl Into<String>) -> ChatCompletionRequestMessage {
+    ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+        content: ChatCompletionRequestUserMessageContent::Text(msg.into()),
         name: None,
-        function_call: None,
-        tool_call_id: Some(tool_id.into()),
-        tool_calls: None,
-    }
+    })
+}
+
+pub fn tool_result(
+    tool_id: impl Into<String>,
+    content: impl Into<String>,
+) -> ChatCompletionRequestMessage {
+    ChatCompletionRequestMessage::Tool(ChatCompletionRequestToolMessage {
+        content: ChatCompletionRequestToolMessageContent::Text(content.into()),
+        tool_call_id: tool_id.into(),
+    })
 }
 
 pub fn strip_think(s: &str) -> &str {
@@ -84,5 +116,44 @@ pub fn strip_think(s: &str) -> &str {
     match s.split_once("</think>") {
         Some((_, rest)) => rest.trim_start(),
         None => s.trim_start(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CompatibleChatCompletionResponse;
+
+    #[test]
+    fn accepts_provider_specific_service_tier_values() {
+        let response = r#"
+        {
+          "choices": [{
+            "index": 0,
+            "finish_reason": "tool_calls",
+            "message": {
+              "role": "assistant",
+              "content": null,
+              "tool_calls": [{
+                "id": "call_123",
+                "type": "function",
+                "function": {
+                  "name": "list_tables",
+                  "arguments": "{\"include_views\":true}"
+                }
+              }]
+            }
+          }],
+          "service_tier": "standard"
+        }
+        "#;
+
+        let response: CompatibleChatCompletionResponse = serde_json::from_str(response).unwrap();
+        let tool_calls = response.choices[0]
+            .message
+            .tool_calls
+            .as_ref()
+            .expect("tool calls should be preserved");
+
+        assert_eq!(tool_calls.len(), 1);
     }
 }

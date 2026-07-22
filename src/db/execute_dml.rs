@@ -27,7 +27,7 @@ impl Tool for ExecuteDML {
         "execute_dml".to_string()
     }
 
-    fn decription(&self) -> String {
+    fn description(&self) -> String {
         "Run a single INSERT, UPDATE, DELETE, or MERGE statement against \
          the active PostgreSQL connection with optional bound parameters. \
          Always requires user confirmation in the calling layer; the \
