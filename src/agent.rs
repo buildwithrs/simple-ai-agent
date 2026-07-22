@@ -1,7 +1,10 @@
+use openai::chat::ChatCompletionMessage;
 use rustyline::DefaultEditor;
 use termimad::MadSkin;
 
 use crate::{
+    config::AgentConfig,
+    context::init_system_prompts,
     errors::AgentError,
     llm::{LLMClient, strip_think, to_chat_message},
     tool::ToolRegistry,
@@ -12,6 +15,8 @@ const CMD_HIS: &'static str = ".history/history.txt";
 pub struct PGAgent {
     pub tool_registry: ToolRegistry,
     pub llm_cli: LLMClient,
+    pub messages: Vec<ChatCompletionMessage>,
+    pub config: AgentConfig,
 }
 
 impl PGAgent {
@@ -19,12 +24,19 @@ impl PGAgent {
         Self {
             tool_registry: tool_reg,
             llm_cli,
+            messages: vec![init_system_prompts()],
+            config: AgentConfig::default(),
         }
     }
 
     pub async fn handle_input(&mut self, msg: &str) -> Result<(), AgentError> {
-        let msg = &[to_chat_message(msg)];
-        let res = &self.llm_cli.chat(msg, &[]).await?;
+        self.messages.push(to_chat_message(msg));
+
+        let msgs = &self.messages;
+        let res = &self
+            .llm_cli
+            .chat(msgs, &self.tool_registry.to_openai_funcs())
+            .await?;
 
         let skin = MadSkin::default();
         match &res.content {

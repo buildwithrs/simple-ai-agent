@@ -31,7 +31,7 @@ impl ToolRegistry {
         self.tools.get(name).cloned()
     }
 
-    pub fn to_openai_func(&self) -> Vec<ChatCompletionFunctionDefinition> {
+    pub fn to_openai_funcs(&self) -> Vec<ChatCompletionFunctionDefinition> {
         self.tools
             .values()
             .map(|f| ChatCompletionFunctionDefinition {
@@ -179,7 +179,7 @@ mod tests {
         registry.register(EchoTool);
         registry.register(FailingTool);
 
-        let fns = registry.to_openai_func();
+        let fns = registry.to_openai_funcs();
         assert_eq!(fns.len(), 2);
 
         let echo = fns.iter().find(|f| f.name == "echo").expect("echo fn");

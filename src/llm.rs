@@ -4,7 +4,7 @@ use openai::{
     Credentials,
     chat::{
         ChatCompletion, ChatCompletionFunctionDefinition, ChatCompletionMessage,
-        ChatCompletionMessageRole::{self, User},
+        ChatCompletionMessageRole::{Tool as ToolRole, User},
     },
 };
 
@@ -14,8 +14,6 @@ pub struct LLMClient {
     pub base_url: String,
     pub model: String,
     pub credentials: Credentials,
-    pub system_msg: Vec<ChatCompletionMessage>,
-    pub user_msgs: Vec<ChatCompletionMessage>,
 }
 
 impl LLMClient {
@@ -28,31 +26,14 @@ impl LLMClient {
             .map_err(|_| AgentError::ClientConfigError("missing OPENAI_BASE_URL"))?;
 
         let credentials = Credentials::new(api_key, base_url.clone());
-        Ok(Self::new(
-            &base_url,
-            &model,
-            credentials,
-            vec![ChatCompletionMessage {
-                role: ChatCompletionMessageRole::System,
-                content: Some("You are a helpful assistant.".to_string()),
-                ..Default::default()
-            }],
-        ))
+        Ok(Self::new(&base_url, &model, credentials))
     }
 
-    pub fn new(
-        base_url: &str,
-        model: &str,
-        credentials: Credentials,
-        system_msg: Vec<ChatCompletionMessage>,
-    ) -> Self {
+    pub fn new(base_url: &str, model: &str, credentials: Credentials) -> Self {
         Self {
             base_url: base_url.to_string(),
             model: model.to_string(),
             credentials,
-            system_msg,
-
-            user_msgs: vec![],
         }
     }
 
@@ -61,17 +42,7 @@ impl LLMClient {
         msgs: &[ChatCompletionMessage],
         funcs: &[ChatCompletionFunctionDefinition],
     ) -> Result<ChatCompletionMessage, AgentError> {
-        if self.user_msgs.len() == 0 {
-            let mut users_msg = self.system_msg.clone();
-            users_msg.extend_from_slice(msgs);
-            self.user_msgs = users_msg;
-        } else {
-            self.user_msgs.extend_from_slice(msgs);
-        }
-
-        let user_msgs = self.user_msgs.clone();
-
-        let chat_completion = ChatCompletion::builder(&self.model, user_msgs)
+        let chat_completion = ChatCompletion::builder(&self.model, msgs)
             .credentials(self.credentials.clone())
             .functions(funcs)
             .create()
@@ -93,6 +64,17 @@ pub fn to_chat_message(msg: &str) -> ChatCompletionMessage {
         name: None,
         function_call: None,
         tool_call_id: None,
+        tool_calls: None,
+    }
+}
+
+pub fn tool_result(tool_id: impl Into<String>, content: impl Into<String>) -> ChatCompletionMessage {
+    ChatCompletionMessage {
+        role: ToolRole,
+        content: Some(content.into()),
+        name: None,
+        function_call: None,
+        tool_call_id: Some(tool_id.into()),
         tool_calls: None,
     }
 }
