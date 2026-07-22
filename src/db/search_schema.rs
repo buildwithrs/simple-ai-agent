@@ -8,6 +8,12 @@ pub struct SearchSchema {
     pub conn: PgPool,
 }
 
+impl SearchSchema {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
+}
+
 #[async_trait]
 impl Tool for SearchSchema {
     fn name(&self) -> String {

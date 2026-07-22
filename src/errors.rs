@@ -1,8 +1,15 @@
 use openai::OpenAiError;
+use rustyline::error::ReadlineError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum AgentError {
+    #[error("read line error: {0}")]
+    ReadLineError(#[from] ReadlineError),
+
+    #[error("terminal error: {0}")]
+    TerminalError(#[from] termimad::Error),
+
     #[error("Memory Error: {0}")]
     MemoryError(String),
 

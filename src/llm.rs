@@ -96,3 +96,11 @@ pub fn to_chat_message(msg: &str) -> ChatCompletionMessage {
         tool_calls: None,
     }
 }
+
+pub fn strip_think(s: &str) -> &str {
+    // everything after the first  tag, trimmed
+    match s.split_once("</think>") {
+        Some((_, rest)) => rest.trim_start(),
+        None => s.trim_start(),
+    }
+}

@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use std::time::Instant;
 
 use crate::{
-    db::tools::{extract_params, require_leading_keyword, split_statements},
+    db::{extract_params, require_leading_keyword, split_statements},
     errors::AgentError,
     tool::Tool,
 };
@@ -13,6 +13,12 @@ const ALLOWED: &[&str] = &["INSERT", "UPDATE", "DELETE", "MERGE"];
 
 pub struct ExecuteDML {
     pub conn: PgPool,
+}
+
+impl ExecuteDML {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
 }
 
 #[async_trait]

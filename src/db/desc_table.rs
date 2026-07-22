@@ -9,6 +9,10 @@ pub struct DescTable {
 }
 
 impl DescTable {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
+
     async fn fetch_columns(&self, schema: &str, table: &str) -> Result<Vec<PgRow>, AgentError> {
         sqlx::query(
             r#"""SELECT column_name, data_type, is_nullable, column_default

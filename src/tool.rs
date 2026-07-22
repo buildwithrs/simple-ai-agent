@@ -19,6 +19,10 @@ pub struct ToolRegistry {
 }
 
 impl ToolRegistry {
+    pub fn new() -> Self {
+        Self { tools: HashMap::new() }
+    }
+
     pub fn register<T: Tool + 'static>(&mut self, tool: T) {
         self.tools.insert(tool.name(), Arc::new(tool));
     }
@@ -38,7 +42,7 @@ impl ToolRegistry {
             .collect()
     }
 
-    pub async fn run(&self, name: &str, args: &str) -> Result<String, AgentError> {
+    pub async fn call(&self, name: &str, args: &str) -> Result<String, AgentError> {
         let tool = self
             .get_fn(name)
             .ok_or_else(|| AgentError::ContextError(format!("unknown tool: {name}")))?;
@@ -201,7 +205,7 @@ mod tests {
         registry.register(EchoTool);
 
         let out = registry
-            .run("echo", r#"{"message":"hello"}"#)
+            .call("echo", r#"{"message":"hello"}"#)
             .await
             .expect("run should succeed");
 
@@ -216,7 +220,7 @@ mod tests {
         let registry = ToolRegistry::default();
 
         let err = registry
-            .run("nope", "{}")
+            .call("nope", "{}")
             .await
             .expect_err("unknown tool should error");
 
@@ -235,7 +239,7 @@ mod tests {
         registry.register(EchoTool);
 
         let err = registry
-            .run("echo", "not-json")
+            .call("echo", "not-json")
             .await
             .expect_err("bad args should error");
 
@@ -251,7 +255,7 @@ mod tests {
         registry.register(FailingTool);
 
         let err = registry
-            .run("failing", "{}")
+            .call("failing", "{}")
             .await
             .expect_err("failing tool should surface its error");
 

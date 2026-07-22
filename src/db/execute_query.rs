@@ -3,7 +3,7 @@ use serde_json::{Value, json};
 use sqlx::PgPool;
 
 use crate::{
-    db::tools::{extract_params, require_leading_keyword, shape_rows},
+    db::{extract_params, require_leading_keyword, shape_rows},
     errors::AgentError,
     tool::Tool,
 };
@@ -12,6 +12,12 @@ const ALLOWED: &[&str] = &["SELECT", "WITH", "EXPLAIN", "SHOW"];
 
 pub struct ExecuteQuery {
     pub conn: PgPool,
+}
+
+impl ExecuteQuery {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
 }
 
 #[async_trait]

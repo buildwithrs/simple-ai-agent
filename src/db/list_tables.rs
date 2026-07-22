@@ -12,6 +12,18 @@ pub struct ListTables {
     pub conn: PgPool,
 }
 
+impl ListSchemas {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
+}
+
+impl ListTables {
+    pub fn new(pool: PgPool) -> Self {
+        Self { conn: pool }
+    }
+}
+
 #[async_trait]
 impl Tool for ListSchemas {
     fn name(&self) -> String {
