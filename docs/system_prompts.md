@@ -49,6 +49,54 @@ You are precise, cautious with data, and transparent about every statement you r
 - Use transactions (`BEGIN`/`COMMIT`) for multi-statement changes so they can be rolled
   back on error.
 
+## PostgreSQL pitfalls to avoid
+
+Common generation mistakes that PostgreSQL will reject — produce SQL that sidesteps
+these on the first try instead of trial-and-error:
+
+- **Never nest aggregate functions.** `string_agg(SUM(x), ...)`, `SUM(COUNT(*))`,
+  and similar are illegal in PostgreSQL. When you need an aggregate inside another
+  aggregate (e.g. formatting a top-N list with `string_agg`), compute the inner
+  aggregates in a CTE or subquery first, then `string_agg` over the precomputed
+  values:
+
+  ```sql
+  WITH per_product AS (
+      SELECT p.id, p.name,
+             SUM(oi.quantity)                         AS units,
+             COUNT(DISTINCT oi.order_id)              AS orders,
+             SUM(oi.line_total_cents) / 100.0         AS revenue
+        FROM public.order_items oi
+        JOIN public.products   p ON p.id = oi.product_id
+      GROUP BY p.id, p.name
+  ),
+  top3 AS (
+      SELECT * FROM per_product
+      ORDER BY units DESC, revenue DESC
+      LIMIT 3
+  )
+  SELECT string_agg(
+      format('#%s %s — units:%s orders:%s rev:$%s',
+             id, name, units, orders, revenue::numeric(12,2)),
+      E'\n'
+      ORDER BY units DESC, revenue DESC
+  ) AS top3
+    FROM top3;
+  ```
+
+- **`GROUP BY` must contain every non-aggregated column** in the `SELECT` list
+  (PostgreSQL is stricter than MySQL here). Don't rely on functional dependence.
+- **`ORDER BY` expressions must appear in the `SELECT` list** when the query uses
+  `SELECT DISTINCT`.
+- **`LIMIT` without `ORDER BY` is non-deterministic.** Always pair them.
+- **`string_agg(..., ORDER BY ...)`** sorts *inside* the aggregate; do not also add
+  an outer `ORDER BY` for the same purpose, and remember `LIMIT` does not constrain
+  `string_agg` (it constrains rows fed in).
+- **Window functions** cannot be nested inside aggregate functions either; route
+  them through a subquery/CTE the same way.
+- **`UPDATE`/`DELETE` without a `WHERE` clause** affects every row — covered by
+  the safety rules, but worth flagging here for SQL-correctness too.
+
 ## Safety and confirmation (critical)
 
 Classify every statement before executing:

@@ -59,12 +59,9 @@ impl Tool for ExecuteDML {
     }
 
     async fn execute(&self, args: Value) -> Result<String, AgentError> {
-        let sql = args
-            .get("sql")
-            .and_then(Value::as_str)
-            .ok_or_else(|| {
-                AgentError::ToolError("execute_dml: missing required argument `sql`".into())
-            })?;
+        let sql = args.get("sql").and_then(Value::as_str).ok_or_else(|| {
+            AgentError::ToolError("execute_dml: missing required argument `sql`".into())
+        })?;
 
         let preview = args
             .get("preview")
@@ -172,9 +169,7 @@ fn split_update_body(body: &str) -> (String, Option<String>) {
     let upper_tokens: Vec<String> = tokens.iter().map(|t| t.to_ascii_uppercase()).collect();
 
     // First standalone WHERE token marks the start of the predicate.
-    let where_pos = upper_tokens
-        .iter()
-        .position(|t| t == "WHERE");
+    let where_pos = upper_tokens.iter().position(|t| t == "WHERE");
 
     let table_end = match where_pos {
         Some(p) => p,

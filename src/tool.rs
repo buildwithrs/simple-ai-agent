@@ -36,14 +36,17 @@ impl ToolRegistry {
     pub fn to_openai_funcs(&self) -> Vec<ChatCompletionTools> {
         self.tools
             .values()
-            .map(|f| ChatCompletionTools::Function( ChatCompletionTool {
-                function: FunctionObjectArgs::default()
-                    .name(f.name())
-                    .description(f.description())
-                    .parameters(f.parammeters_schema())
-                    .strict(true)
-                    .build().expect("failed to build function object"),
-            }))
+            .map(|f| {
+                ChatCompletionTools::Function(ChatCompletionTool {
+                    function: FunctionObjectArgs::default()
+                        .name(f.name())
+                        .description(f.description())
+                        .parameters(f.parammeters_schema())
+                        .strict(true)
+                        .build()
+                        .expect("failed to build function object"),
+                })
+            })
             .collect()
     }
 
@@ -57,4 +60,3 @@ impl ToolRegistry {
         tool.execute(args).await
     }
 }
-

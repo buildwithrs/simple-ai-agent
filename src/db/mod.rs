@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use sqlx::postgres::{PgPool, PgPoolOptions, PgRow};
-use sqlx::{Row, Column};
+use sqlx::{Column, Row};
 use std::time::Duration;
 
 use crate::db::{

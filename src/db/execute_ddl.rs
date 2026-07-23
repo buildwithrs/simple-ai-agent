@@ -53,12 +53,9 @@ impl Tool for ExecuteDDL {
     }
 
     async fn execute(&self, args: Value) -> Result<String, AgentError> {
-        let sql = args
-            .get("sql")
-            .and_then(Value::as_str)
-            .ok_or_else(|| {
-                AgentError::ToolError("execute_ddl: missing required argument `sql`".into())
-            })?;
+        let sql = args.get("sql").and_then(Value::as_str).ok_or_else(|| {
+            AgentError::ToolError("execute_ddl: missing required argument `sql`".into())
+        })?;
 
         let confirm = args
             .get("confirm")
@@ -95,8 +92,8 @@ impl Tool for ExecuteDDL {
             .map_err(|e| AgentError::ToolError(format!("execute_ddl: {e}")))?;
         let execution_ms = started.elapsed().as_millis() as u64;
 
-        let object = extract_target_identifier(&keyword, sql)
-            .unwrap_or_else(|| "<unknown>".to_string());
+        let object =
+            extract_target_identifier(&keyword, sql).unwrap_or_else(|| "<unknown>".to_string());
 
         let payload = json!({
             "statement":    match_keyword_label(&keyword),
@@ -123,10 +120,7 @@ fn extract_target_identifier(keyword: &str, sql: &str) -> Option<String> {
     let tokens: Vec<&str> = sql.split_whitespace().collect();
     let upper_tokens: Vec<String> = tokens.iter().map(|t| t.to_ascii_uppercase()).collect();
 
-    let keyword_pos = upper_tokens
-        .iter()
-        .position(|t| t == keyword)
-        .unwrap_or(0);
+    let keyword_pos = upper_tokens.iter().position(|t| t == keyword).unwrap_or(0);
     let after_kw = tokens.get(keyword_pos + 1)?;
 
     // Skip the object-class word (`TABLE`, `INDEX`, ...) if present.

@@ -5,8 +5,12 @@ use simple_pg_agent::{
     tool::ToolRegistry,
 };
 
+use tracing_subscriber::EnvFilter;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    init_tracing();
+
     dotenv::dotenv().ok();
 
     let llm_cli = LLMClient::from_env()?;
@@ -21,4 +25,13 @@ async fn main() -> anyhow::Result<()> {
     agent.run().await?;
 
     Ok(())
+}
+
+fn init_tracing() {
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("info,simple_pg_agent::agent=debug"));
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .try_init();
 }
